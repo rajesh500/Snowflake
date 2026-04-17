@@ -1,0 +1,20 @@
+
+Internal stage:
+User Stage (@~):    allocated to each user for temporary storage, inaccessible by other users.
+Table Stage (@%table_name): Automatically created for every table, this stage allows multiple users to stage files, but data can only be loaded into that specific table.
+Named Internal Stage (@my_stage): ) that provides maximum flexibility. These stages can be accessed by multiple users and used to load data into one or more tables. 
+
+$1, $2 column names access from stage --> because no table.
+$6 column is not null values shows.
+
+
+Task: scheduling a code.
+default task run only one sql command.
+in order to run multiple a procedure need to be created.
+
+scheduling in timezone using cron SCHEDULE = 'USING CRON 0 2 * * * UTC'
+
+Task once created it is suspended mode.
+execute resume command.  ALTER TASK my_task RESUME;
+
+
