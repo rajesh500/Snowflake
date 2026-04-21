@@ -1,0 +1,96 @@
+
+Snowflake architecture:
+Snowflake’s architecture is a unique hybrid of traditional shared-disk and shared-nothing database architectures, designed specifically for the cloud. It separates storage, compute, and cloud services into three distinct, independently scalable layers.
+
+Database Storage (Storage Layer): AWS S3, BLOB, GCP
+Query Processing (Compute Layer): virtual warehouses (MPP compute cluster)
+Cloud Services (Brain Layer): manages authentication, infrastructure, metadata, security, and query optimization.
+
+Standard and Snowpark-Optimized:
+Standard for SQL
+Snowpark-Optimized for snowpark.
+
+Warehouse Sizing (T-Shirt Sizes): X-Small to 6X-Large.
+
+Database types:
+Standard (Permanent) Databases: full data protection including time travel upto 90 days and Fail-safe.
+Transient Databases: no permanent storage (kind of staging), time travel 1 day, no fail-safe.
+Temporary: Session base, once session end will drop automatically.
+
+
+On-Demand storage vs capacity storage:
+On-demand pay for usage month to month 
+Capacity storage: pay for usage up front.
+
+
+
+Internal stage:
+User Stage (@~):    allocated to each user for temporary storage, inaccessible by other users.
+Table Stage (@%table_name): Automatically created for every table, this stage allows multiple users to stage files, but data can only be loaded into that specific table.
+Named Internal Stage (@my_stage): ) that provides maximum flexibility. These stages can be accessed by multiple users and used to load data into one or more tables. 
+
+$1, $2 column names access from stage --> because no table.
+$6 column is not null values shows.
+
+METADATA$FILENAME: Returns the name of the staged data file each row belongs to, including the full path within the stage.
+METADATA$FILE_ROW_NUMBER: Returns the sequential row number for each record within its specific staged data file.s
+
+Task: scheduling a code.
+default task run only one sql command.
+in order to run multiple a procedure need to be created.
+
+scheduling in timezone using cron SCHEDULE = 'USING CRON 0 2 * * * UTC'
+
+Task once created it is suspended mode.
+execute resume command.  ALTER TASK my_task RESUME;
+
+
+
+
+put command: auto_compression, source_compression, overwrite.
+get command:
+loading and unloading using copy command.
+
+
+External stage:
+create storage integration.
+create stage and add above integration.
+
+
+
+
+Slow Query Performance:
+When you notice that a query is running slowly, check whether an overloaded warehouse is causing the query to compete for resources or get queued:
+•	If the running query load is high or there’s queuing, consider starting a separate warehouse and moving queued queries to that warehouse. Alternatively, if you are using multi-cluster warehouses, you could change your multi-cluster settings to add additional clusters to handle higher concurrency going forward.
+•	If the running query load is low and query performance is slow, you could resize the warehouse to provide more compute resources. You would need to restart the query once all the new resources were fully provisioned to take advantage of the added resources.
+
+
+Time-Travel:
+Snowflake Time Travel is a continuous data protection (CDP) feature that allows users to access, query, and restore historical data that has been changed or deleted within a defined retention period.
+
+Core Capabilities:
+Query Historical Data
+Restore Dropped Objects
+Cloning Past States
+Data Recovery
+
+
+
+Zero-copy cloning:
+copy entire DB in second include schema, tables ..
+Only incurring new storage costs when data is modified in the clone. 
+
+Ex:
+Consider Table-A and its cloned snapshot of Table-B.
+MP-1, MP-2, MP-3 pointing to same micro partition.
+
+Micro-partitions in Snowflake are immutable i.e., once created lasts in the same state until table is dropped. Hence, for any change in the data of a micro-partition, a new micro-partition is created with updated changes and metadata will point to the newly created micro partition. The older partition is retained for time-travel and Fail-safe purposes
+
+
+Tables:
+Temporary tables: Session base
+Transient tables: regualr table,  Persist until explicitly dropped and are available to all users with the appropriate privileges.
+Permanent tables: same as transient table only difference is fail safe is availble here.
+
+
+Merge statement: merge into tgt using src on tgt.id = src.id when matched then update      when not matched insert statement.
