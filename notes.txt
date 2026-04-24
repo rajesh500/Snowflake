@@ -188,6 +188,35 @@ CREATE STREAM s3 ON VIEW my_view;    -- Tracks changes from underlying tables.
 Raw Table (landing) -> Stream (CDC) -> Task (scheduled or triggered) -> Clean Table (analytics-ready).
 
 
+Stream vs Dynamic table:
+stream is used for CDC
+dynamic table refresh automatically based on base table.
+
+Ex:
+CDC:
+table-1
+Id amount 
+1  100
+
+update happended
+
+table-1
+Id amount 
+1  200 
+
+Here 100 record deleted and inserted 200.
+
+Auto-refresh:
+1 100
+2 200
+
+insert new record
+
+3 50
+
+now when query it will return 350. data will not be deleted.
+ 
+
 
 Micro-partitions:
 
@@ -199,3 +228,79 @@ select $id;
 
 
 unset id;
+
+
+openflow: developed on top of Apache NiFi
+as of now without openflow we are using fivetran and airbyte.
+openflow is a integration service used to connect to external sources and ingest data directly into snowflake as CDC.
+This is a continuos pipeline.
+it is supported for only AWS as of now.
+
+
+use case:
+apache kafka, api, external source ...
+
+
+
+openflow       vs       snow pipe   	vs 			streams
+
+Openflow → end-to-end managed ingestion pipeline (from external source)
+MySQL → Openflow → Snowflake table
+Best for Replacing ETL tools (Fivetran, Airbyte),   Continuous sync from source systems
+
+
+Snowpipe → auto-load files into tables
+Automatically loads files into Snowflake, Triggered when new files arrive in storage
+S3 → Snowpipe → Snowflake table
+Best for File-based ingestion (CSV, JSON, Parquet), Event-driven loading.
+
+
+
+Streams → track changes (CDC) after data is in Snowflake
+Tracks changes inside Snowflake tables
+Enables incremental processing
+Table → Stream → Task → Target table.
+
+
+overview:
+External Source → (Openflow / Snowpipe) → Snowflake Table → (Streams) → Processing
+
+
+snowpipe:
+Snowpipe is a service for automatically loading data from cloud storage into Snowflake tables as soon as files arrive.
+Snowpipe = continuous, automatic data ingestion from files into Snowflake.
+Cloud Storage (S3 / Azure / GCS)   ->   Snowpipe (auto trigger)   ->    Snowflake Table
+
+
+CREATE OR REPLACE PIPE my_pipe
+AUTO_INGEST = TRUE   AS
+COPY INTO sales
+FROM @my_stage
+FILE_FORMAT = my_format;
+
+using snowpipe it is continuous and auto trigger. If we want to do manully copy into command is good option.
+COPY INTO useful for
+Batch
+Manual
+Bulk loads
+
+
+API snowpipe doesn't work, use python or aws lambda to put as a file in S3 and then snowpipe.
+
+
+Deployment:
+Write SQL → Push to Git → CI/CD → Flyway → Snowflake (DEV → TEST → PROD).
+
+
+
+Why Snowflake over other Warehouses:
+Option to choose the cloud provider instead of tightly binding to one of them (AWS/GCP/Azure)
+Provides an efficient serverless architecture
+Queries are stored in the cache for 24hrs saving compute time and resources
+Time-travel feature to revert to query IDs (starts 24hrs for standard account upto 90 days with Enterprise version)
+Decouples Compute and Storage and saves costs with columnar compression and other techniques.
+Scales efficiently unlike other solutions like Redshift, which scales by compute nodes, charging per hour.
+Doesn't charge for data ingress and metadata storage.
+Provides in-house visualization tools to understand the results while querying.
+
+
