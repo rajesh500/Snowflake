@@ -304,3 +304,34 @@ Doesn't charge for data ingress and metadata storage.
 Provides in-house visualization tools to understand the results while querying.
 
 
+
+
+ACCOUNTADMIN:
+Highest privilege (like super admin)
+Can manage:
+users, roles,  warehouses,  billing.
+
+SECURITYADMIN:
+Manages:
+users, roles, grants
+
+SYSADMIN:
+Manages:
+databases, schemas, tables, warehouses
+
+USERADMIN:
+Creates and manages users only.
+
+
+** note if table/schema/database/warehouse... is created need to provide access to the user.
+
+
+masking policy:
+create masking policy
+alter/create attach the masking policy to field in the table.
+
+
+
+
+
+
