@@ -332,6 +332,214 @@ alter/create attach the masking policy to field in the table.
 
 
 
+External Volume:
+means data stored outside of snoeflake like S3, GCP, Blob.
+It is mainly used with iceberg tables.
+
+CREATE EXTERNAL VOLUME my_ext_vol
+STORAGE_LOCATIONS = (
+  (
+    NAME = 's3_loc'
+    STORAGE_PROVIDER = 'S3'
+    STORAGE_BASE_URL = 's3://my-bucket/path/'
+    STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::123456789:role/snowflake-role'
+  )
+);
+
+
+
+CREATE ICEBERG TABLE my_table
+EXTERNAL_VOLUME = 'my_ext_vol';
+
+
+External Table      vs     Iceberg table:
+external table  query files in place(read only).
+Lets you query data directly from files (S3, Azure, GCS)
+Data stays in files (CSV, Parquet, JSON)
+
+Key characteristics
+❌ Read-only (no INSERT/UPDATE)
+❌ No data stored in Snowflake
+
+
+Iceberg table   Full table stored in your data lake (read/write).
+A full table format (like normal Snowflake tables)
+But data is stored in your cloud storage
+Uses Apache Iceberg format
+👉 Key characteristics
+✅ Read + Write (INSERT, UPDATE, DELETE)
+✅ ACID transactions
+✅ Schema evolution
+✅ Can be used by multiple engines (Spark, Snowflake)
+
+when to use it:
+You need full table operations (INSERT/UPDATE)
+You want data lake + warehouse together
+
+create external volume + Iceberg table.
+
+
+Iceberg:
+A table whose data is stored in your cloud storage (like S3) using the Apache Iceberg format, but can be queried and managed from Snowflake.
+Snowflake (compute + metadata)  -->  External Volume   -->  S3 / Azure / GCS (Iceberg data files).
+
+underneath iceberg uses parquet file format.
+
+Feature:
+External storage.
+ACID transactions
+Schema evolution (add/drop column)
+time travel
+
+CREATE EXTERNAL VOLUME my_ext_vol
+STORAGE_LOCATIONS = (
+  (
+    NAME = 's3_loc'
+    STORAGE_PROVIDER = 'S3'
+    STORAGE_BASE_URL = 's3://my-bucket/path/'
+    STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::123456789:role/snowflake-role'
+  )
+);
+
+
+CREATE ICEBERG TABLE sales_iceberg (
+    id INT,
+    amount FLOAT
+)
+EXTERNAL_VOLUME = 'my_ext_vol';
+
+
+How data is stored:
+
+In S3, you’ll see:
+
+/data/
+   ├── metadata/
+   ├── manifest/
+   ├── data files (Parquet)
+
+
+Limitations: Slightly more complex setup, performance depends on storage,  Requires External Volume,  Not all Snowflake features fully supported.
+Snowflake does not provide Fail-safe storage for Iceberg tables.
+
+
+Billing:
+storage no charge in snowflake but during create if we mention this EXTERNAL_VOLUME = SNOWFLAKE_MANAGED
+snowflake charge for storage as well.
+snowflake charges compute + auto refresh (using snow pipe we will refresh data from S3 to iceberg table) + charges cross-cloud/cross-region.
+
+
+
+catalog:
+The metadata layer that keeps track of Iceberg tables—where they are, what schema they have, and which data files belong to them.
+once data is stored in S3 location along with data metadata also stored thier in json format.
+In snowflake we no need to mention anything about catalog.
+
+What the catalog stores:
+
+Table location (S3 path)
+Schema (columns, types)
+Partitions
+Snapshots (versions)
+File references (Parquet files)
+
+
+Types of iceberg catalog:
+1. Hadoop Catalog    -> stores metadata in file system (S3, HDFS)
+2. Hive Metastore Catalog   -> Uses Hive Metastore as catalog
+3. REST Catalog   ->  Uses API-based service
+4. Glue Catalog (AWS) ->  Uses AWS Glue Data Catalog.
+5. Snowflake Catalog
+
+
+In snowflake catalog is managed by snowflake.
+let’s say you use Apache Spark with AWS Glue: catalog need to manage exteranlly.
+
+
+
+snapshot:
+Snapshots are NOT deleted automatically right away.
+They are removed only when you run a cleanup process (like vacuum/expire) and they are older than the retention period.
+
+Iceberg does not overwrite data, Every change creates a new snapshot.
+Snapshot 1 → Initial load
+Snapshot 2 → Insert new data
+Snapshot 3 → Update records
+Snapshot 4 → Delete records
+
+Iceberg:
+
+Writes new Parquet file
+Creates new snapshot
+Updates metadata pointer
+
+
+Time travel:
+it will go that specific version instead of latest version.
+
+
+
+✅ ACID transactions   Safe updates
+✅ Time travel        Query past data
+✅ Rollback          Revert to old snapshot
+✅ Incremental processing   Process only new data
+
+
+ALTER ICEBERG TABLE sales
+SET DATA_RETENTION_TIME_IN_DAYS = 7;
+
+
+
+Metadata is the information about your table, not the data itself.
+
+It tracks:
+
+Schema (columns, types)
+Partition info
+Data file locations
+Snapshots (versions)
+📁 Metadata files structure
+
+In S3, you’ll see something like:
+
+/iceberg/sales/
+   ├── metadata/
+   │     ├── v1.metadata.json
+   │     ├── v2.metadata.json
+   │     ├── snap-123.json
+   │     ├── manifest-list.avro
+   │     ├── manifest.avro
+
+🔍 Types of metadata files
+1. Table metadata file
+v1.metadata.json
+Contains:
+schema
+current snapshot pointer
+
+2. Manifest list
+Lists groups of data files
+
+3. Manifest files
+Track individual data files
+
+4. Data files
+Actual data (Parquet)
+
+
+
+
+Security in Snowflake:
+1. Authentication    (user login)   username + password, sso, MFA, key pair.
+2. Authorization     (RABC)
+3. Object level security  (database, schema, table, views)
+4. Data - level security  
+	row-level
+	column-level
+5. Encryption
+6. Network security  (allow access to ip 192.168.1.0/24)
+7. Data sharing security
+
 
 
 
