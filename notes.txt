@@ -45,6 +45,19 @@ Task once created it is suspended mode.
 execute resume command.  ALTER TASK my_task RESUME;
 
 
+Task Dependency:
+CREATE OR REPLACE TASK task_c
+WAREHOUSE = my_wh
+AFTER task_a, task_b
+AS
+INSERT INTO final_table SELECT * FROM table_b;
+
+
+Task History:
+SELECT * FROM TABLE(INFORMATION_SCHEMA.TASK_HISTORY(TASK_NAME => 'my_task', RESULT_LIMIT => 10));     ---> real time (immediate after run), 7 days retension
+SELECT * FROM SNOWFLAKE.ACCOUNT_USAGE.TASK_HISTORY WHERE NAME = 'MY_TASK' ORDER BY SCHEDULED_TIME DESC;  --> 45 minues delay, 365 days, entire account.
+
+
 
 
 put command: auto_compression, source_compression, overwrite.
@@ -217,8 +230,7 @@ insert new record
 now when query it will return 350. data will not be deleted.
  
 
-
-Micro-partitions:
+In snowflake data store in Micro-partitions and no indexing.
 
 
 
@@ -261,6 +273,16 @@ Tracks changes inside Snowflake tables
 Enables incremental processing
 Table → Stream → Task → Target table.
 
+stream types:
+CREATE STREAM my_stream ON TABLE my_table;   all changes
+CREATE STREAM my_append_stream  ON TABLE my_table  APPEND_ONLY = TRUE;   -- only insert no update/delete.
+CREATE STREAM my_ext_stream  ON EXTERNAL TABLE my_ext_table;   -- Tracks new files/rows added to external storage (like S3) Does NOT track deletes or updates
+
+METADATA$ACTION   insert/update
+METADATA$ISUPDATE true/false
+METADATA$ROW_ID   hash rowid
+
+default retention 14 days
 
 overview:
 External Source → (Openflow / Snowpipe) → Snowflake Table → (Streams) → Processing
@@ -539,6 +561,55 @@ Security in Snowflake:
 5. Encryption
 6. Network security  (allow access to ip 192.168.1.0/24)
 7. Data sharing security
+
+
+
+
+secure view:
+In Snowflake, a secure view is a special type of view designed to protect sensitive data by restricting how the view definition and underlying data are exposed.
+A secure view behaves like a normal view, but adds extra privacy guarantees—especially important when sharing data with other users or external accounts.
+
+It does not create a separate table or copy data. it is like a regular view.
+
+CREATE SECURE VIEW my_secure_view AS
+SELECT col1, col2
+FROM my_table;
+
+secure view underneth query/DDL not able to view only data exposes no business logic.
+query optimization is restricted.
+secure view is used for securly sharing the data.
+
+
+
+Trade-offs
+
+Secure views come with a small cost:
+
+Slightly lower performance due to restricted optimizations
+Less transparency for debugging
+
+
+
+Cache:
+resulta cache: Stores the final query result so Snowflake can return it instantly if the same query runs again, no compute needed
+warehouse cache / local disk: cache data on the virtual warehouse local SSD.  compute needed
+cloud services cache / remote disk: Caches data in the remote layer. compute needed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
