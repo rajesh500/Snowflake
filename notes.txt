@@ -597,8 +597,14 @@ cloud services cache / remote disk: Caches data in the remote layer. compute nee
 
 
 
+Query:
+old way:
+select * from(
+select *, row_number() over(partiton by dept order by id) as rnum from  table)where rnum = 1
 
 
+New way:
+select * from table qualify row_number over(partition by dept order by id) = 1;
 
 
 
