@@ -646,10 +646,32 @@ df = spark.read \
 
 
 
+Schema Enforcement vs Schema Evolutions:
+schema enforcement validates data against exiting table, if data doesn't matches then write operation fails.
+Ex:
+target table has id int and name  varchar fields.
+if incoming data is 10 and 1000 then writing operation fails.
+
+Schema Evolutions:
+Schema evolutions allows the table schema to change when new columns are added in incomimg data instead of failing. Delta table updates the table schema.
+Ex: id, name, sal
+target has 
+id, name then target table will change to 
+id, name, sal
 
 
 
 
+inferschema vs mergeSchema:
+In spark by default it reads all data in the string format, irrespective of data.
+If we have any calculations need to convert the data into thier related data formats.
+while reading if we use Inferschema, it will read data into thier related data types only.
+
+
+Merge Schema:
+today we write data into target will four columns and the next day in the source we are getting five columns.
+here pipeline will get failed because of schema enforcement. it can accomidate the new field.
+In order to acheive this MergeSchema option we need to use during the write time it will change the target table schema automatically and add the new field.
 
 
 
